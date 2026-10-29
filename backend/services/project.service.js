@@ -65,30 +65,51 @@ const deleteProject = async (projectId, userId) => {
 };
 
 // Update a project belonging to a user
+
 const updateProject = async (projectId, userId, data) => {
-    const { name, description, sourceType, sourceUrl } = data;
+    // Get the existing project first
+    const existingProject = await getProjectById(projectId, userId);
 
-    const [result] = await db.execute(
-        `UPDATE projects
-         SET name = ?, description = ?, source_type = ?, source_url = ?
-         WHERE id = ? AND user_id = ?`,
-        [name, description, sourceType, sourceUrl, projectId, userId]
-    );
-
-    if (result.affectedRows === 0) {
+    if (!existingProject) {
         throw new Error("Project not found");
     }
 
+    // Preserve fields that were not provided
+    const name = data.name !== undefined
+        ? data.name.trim()
+        : existingProject.name;
+
+    const description = data.description !== undefined
+        ? data.description
+        : existingProject.description;
+
+    const sourceType = existingProject.source_type;
+    const sourceUrl = existingProject.source_url;
+
+    if (!name) {
+        throw new Error("Project name is required");
+    }
+
+    const [result] = await db.execute(
+        `UPDATE projects
+         SET name = ?, description = ?
+         WHERE id = ? AND user_id = ?`,
+        [name, description, projectId, userId]
+    );
+
+    if (result.affectedRows === 0) {
+        throw new Error("Project not found or no changes were made");
+    }
+
     return {
-        id: projectId,
-        userId,
+        id: existingProject.id,
         name,
         description,
-        sourceType,
-        sourceUrl
+        source_type: sourceType,
+        source_url: sourceUrl,
+        created_at: existingProject.created_at
     };
 };
-
 
 module.exports = {
     createProject,

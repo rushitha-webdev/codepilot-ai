@@ -4,3 +4,10 @@ dist/
 build/
 *.log
 .vscode/
+# Cloned repositories used for project analysis
+/projects/
+
+# Environment secrets
+.env
+.env.*
+!.env.example
